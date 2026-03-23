@@ -128,13 +128,16 @@ if predict_clicked:
 
                 # 🔥 SAVE TO SUPABASE
                 try:
-                    supabase.table("emails").insert({
-                        "text": part,
-                        "intent": predicted_intent,
-                        "confidence": confidence
-                    }).execute()
-                except:
-                    pass  # avoid crash if DB fails
+                    response_db = supabase.table("emails").insert({
+                         "text": part,
+                         "intent": predicted_intent,
+                         "confidence": float(confidence)
+                   }).execute()
+
+                   st.write("DB Response:", response_db)  # 👈 SHOW RESULT
+
+                except Exception as e:
+                   st.error(f"Supabase Error: {e}")
 
             except:
                 predicted_intent = "Error"
