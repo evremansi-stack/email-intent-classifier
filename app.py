@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import re
-import string
+from supabase import create_client
 
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(page_title="Email Intent Classifier", layout="centered")
@@ -38,12 +38,6 @@ h3 {
     font-weight: bold;
     border-radius: 12px;
     padding: 10px 20px;
-    transition: 0.3s;
-}
-
-.stButton button:hover {
-    transform: scale(1.05);
-    background: linear-gradient(90deg, #00C9FF, #92FE9D);
 }
 
 .result-box {
@@ -62,64 +56,56 @@ h3 {
 .confidence {
     color: #FFD700;
 }
-
-.suggestion {
-    background: #2c2c3e;
-    padding: 10px;
-    border-radius: 10px;
-    margin-top: 5px;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------ SIDEBAR ------------------
 st.sidebar.title("⚙️ Settings")
 st.sidebar.write("Model: Cloud API (Render)")
-st.sidebar.write("Version: 3.0")
-st.sidebar.write("Developer: You 😎")
+st.sidebar.write("Database: Supabase")
+st.sidebar.write("Version: 4.0")
 
-# ------------------ API URL ------------------
+# ------------------ CONFIG ------------------
 API_URL = "https://email-intent-classifier.onrender.com/predict"
 
-# ------------------ SPLIT SENTENCES ------------------
+SUPABASE_URL = "https:hlktfhghnuohxekeoaqv.supabase.co"
+SUPABASE_KEY = "sb_publishable_qR0V7NzXZEo5m_jq5VxW_A_NWyxwVEU"
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ------------------ FUNCTIONS ------------------
 def split_sentences(text):
     return re.split(r'[.!?]+| and ', text)
 
-# ------------------ RESPONSES ------------------
 responses = {
-    "Complaint": "⚠️ We are sorry for the inconvenience. Our team will resolve this soon.",
+    "Complaint": "⚠️ We are sorry for the inconvenience.",
     "Query": "📩 We will get back to you shortly.",
-    "Cancellation": "❌ Your cancellation request is being processed.",
-    "Order": "🛒 Your order request has been received.",
-    "Feedback": "🙏 Thank you for your valuable feedback!",
-    "Support": "🛠️ Our support team will assist you shortly.",
-    "Spam": "🚫 This message is flagged as spam."
+    "Cancellation": "❌ Cancellation request received.",
+    "Order": "🛒 Order request received.",
+    "Feedback": "🙏 Thank you for feedback!",
+    "Support": "🛠️ Support team will assist.",
+    "Spam": "🚫 This is spam."
 }
 
 # ------------------ HEADER ------------------
 st.markdown("<h1>📧 AI Email Intent Classifier</h1>", unsafe_allow_html=True)
-st.markdown("<h3>Understand emails smarter ⚡</h3>", unsafe_allow_html=True)
+st.markdown("<h3>Cloud-powered Email Analysis ⚡</h3>", unsafe_allow_html=True)
 
-# ------------------ SESSION INIT ------------------
+# ------------------ SESSION ------------------
 if "input_text" not in st.session_state:
     st.session_state.input_text = ""
 
 # ------------------ BUTTONS ------------------
 col1, col2 = st.columns(2)
-
-predict_clicked = col1.button("🔍 Predict Intent")
+predict_clicked = col1.button("🔍 Predict")
 clear_clicked = col2.button("🧹 Clear")
 
-# ------------------ CLEAR LOGIC ------------------
 if clear_clicked:
     st.session_state.input_text = ""
     st.rerun()
 
-# ------------------ INPUT BOX ------------------
-email_input = st.text_area(
-    "✉️ Enter your email text here:",
-    key="input_text"
-)
+# ------------------ INPUT ------------------
+email_input = st.text_area("Enter email:", key="input_text")
 
 # ------------------ PREDICTION ------------------
 if predict_clicked:
@@ -128,24 +114,27 @@ if predict_clicked:
 
         parts = split_sentences(email_input)
 
-        st.markdown("## 📊 Detected Intents")
-
         for part in parts:
             part = part.strip()
             if part == "":
                 continue
 
             try:
-                response = requests.post(
-                    API_URL,
-                    json={"text": part},
-                    timeout=5
-                )
-
+                response = requests.post(API_URL, json={"text": part}, timeout=5)
                 result = response.json()
 
                 predicted_intent = result.get("prediction", "Error")
                 confidence = result.get("confidence", 0)
+
+                # 🔥 SAVE TO SUPABASE
+                try:
+                    supabase.table("emails").insert({
+                        "text": part,
+                        "intent": predicted_intent,
+                        "confidence": confidence
+                    }).execute()
+                except:
+                    pass  # avoid crash if DB fails
 
             except:
                 predicted_intent = "Error"
@@ -153,14 +142,12 @@ if predict_clicked:
 
             st.markdown(f"""
             <div class="result-box">
-                <p><b>📝 Text:</b> {part}</p>
-                <p><b>🎯 Intent:</b> <span class="intent">{predicted_intent}</span></p>
-                <p><b>📈 Confidence:</b> <span class="confidence">{confidence:.2f}%</span></p>
-                <div class="suggestion">
-                    💡 {responses.get(predicted_intent, "No suggestion available")}
-                </div>
+                <p><b>Text:</b> {part}</p>
+                <p><b>Intent:</b> <span class="intent">{predicted_intent}</span></p>
+                <p><b>Confidence:</b> <span class="confidence">{confidence:.2f}%</span></p>
+                <p>{responses.get(predicted_intent, "")}</p>
             </div>
             """, unsafe_allow_html=True)
 
     else:
-        st.warning("⚠️ Please enter some email text.")
+        st.warning("Enter some text")
