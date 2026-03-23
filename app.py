@@ -1,5 +1,5 @@
 import streamlit as st
-import pickle
+import requests
 import re
 import string
 
@@ -74,41 +74,16 @@ h3 {
 
 # ------------------ SIDEBAR ------------------
 st.sidebar.title("⚙️ Settings")
-st.sidebar.write("Model: Logistic Regression")
-st.sidebar.write("Version: 2.0")
+st.sidebar.write("Model: Cloud API (Render)")
+st.sidebar.write("Version: 3.0")
 st.sidebar.write("Developer: You 😎")
 
-# ------------------ LOAD MODEL ------------------
-model = pickle.load(open("model.pkl", "rb"))
-vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+# ------------------ API URL ------------------
+API_URL = "https://your-api.onrender.com/predict"  # 🔁 Replace with your actual Render URL
 
-# ------------------ CLEAN TEXT ------------------
-def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'\d+', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    return text
-
-# ------------------ SPLIT SENTENCES (NO NLTK) ------------------
+# ------------------ SPLIT SENTENCES ------------------
 def split_sentences(text):
     return re.split(r'[.!?]+| and ', text)
-
-# ------------------ KEYWORD OVERRIDE ------------------
-def keyword_override(text):
-    text = text.lower()
-
-    if any(word in text for word in ["refund", "not working", "defective", "bad", "damage"]):
-        return "Complaint"
-    elif "cancel" in text:
-        return "Cancellation"
-    elif any(word in text for word in ["order", "buy", "purchase"]):
-        return "Order"
-    elif any(word in text for word in ["thank", "love", "great", "good", "awesome"]):
-        return "Feedback"
-    elif any(word in text for word in ["help", "support", "issue"]):
-        return "Support"
-    
-    return None
 
 # ------------------ RESPONSES ------------------
 responses = {
@@ -125,7 +100,6 @@ responses = {
 st.markdown("<h1>📧 AI Email Intent Classifier</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Understand emails smarter ⚡</h3>", unsafe_allow_html=True)
 
-# ------------------ INPUT WITH SESSION ------------------
 # ------------------ SESSION INIT ------------------
 if "input_text" not in st.session_state:
     st.session_state.input_text = ""
@@ -136,20 +110,16 @@ col1, col2 = st.columns(2)
 predict_clicked = col1.button("🔍 Predict Intent")
 clear_clicked = col2.button("🧹 Clear")
 
-# ------------------ CLEAR LOGIC (BEFORE INPUT BOX) ------------------
+# ------------------ CLEAR LOGIC ------------------
 if clear_clicked:
     st.session_state.input_text = ""
+    st.rerun()
 
 # ------------------ INPUT BOX ------------------
 email_input = st.text_area(
     "✉️ Enter your email text here:",
     key="input_text"
 )
-
-# ------------------ CLEAR FUNCTION ------------------
-if clear_clicked:
-    st.session_state.input_text = ""
-    st.rerun()
 
 # ------------------ PREDICTION ------------------
 if predict_clicked:
@@ -165,20 +135,21 @@ if predict_clicked:
             if part == "":
                 continue
 
-            override = keyword_override(part)
+            try:
+                response = requests.post(
+                    API_URL,
+                    json={"text": part},
+                    timeout=5
+                )
 
-            if override:
-                predicted_intent = override
-                confidence = 95.0
-            else:
-                cleaned = clean_text(part)
-                email_vector = vectorizer.transform([cleaned])
+                result = response.json()
 
-                prediction = model.predict(email_vector)
-                probs = model.predict_proba(email_vector)
+                predicted_intent = result.get("prediction", "Error")
+                confidence = result.get("confidence", 0)
 
-                predicted_intent = prediction[0]
-                confidence = max(probs[0]) * 100
+            except:
+                predicted_intent = "Error"
+                confidence = 0
 
             st.markdown(f"""
             <div class="result-box">
@@ -186,7 +157,7 @@ if predict_clicked:
                 <p><b>🎯 Intent:</b> <span class="intent">{predicted_intent}</span></p>
                 <p><b>📈 Confidence:</b> <span class="confidence">{confidence:.2f}%</span></p>
                 <div class="suggestion">
-                    💡 {responses[predicted_intent]}
+                    💡 {responses.get(predicted_intent, "No suggestion available")}
                 </div>
             </div>
             """, unsafe_allow_html=True)
