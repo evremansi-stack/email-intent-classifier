@@ -1,4 +1,4 @@
-streamlit
-pandas
+flask
 scikit-learn
-pickle-mixin
+pandas
+numpy
