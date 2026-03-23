@@ -79,7 +79,7 @@ st.sidebar.write("Version: 3.0")
 st.sidebar.write("Developer: You 😎")
 
 # ------------------ API URL ------------------
-API_URL = "https://your-api.onrender.com/predict"  # 🔁 Replace with your actual Render URL
+API_URL = "https://email-intent-classifier.onrender.com/predict"
 
 # ------------------ SPLIT SENTENCES ------------------
 def split_sentences(text):
