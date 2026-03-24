@@ -100,7 +100,7 @@ if user:
 
                 # ---------------- API CALL ----------------
                 try:
-                    response = requests.post(API_URL, json={"text": part}, timeout=5)
+                    response = requests.post(API_URL, json={"text": part}, timeout=15)
                     result = response.json()
 
                     predicted_intent = result.get("prediction", "Error")
