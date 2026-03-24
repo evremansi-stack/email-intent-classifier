@@ -68,7 +68,7 @@ st.sidebar.write("Version: 4.0")
 # ------------------ CONFIG ------------------
 API_URL = "https://email-intent-classifier.onrender.com/predict"
 
-SUPABASE_URL = "https:hlktfhghnuohxekeoaqv.supabase.co"
+SUPABASE_URL = "https://hlktfhghnuohxekeoaqv.supabase.co"
 SUPABASE_KEY = "sb_publishable_qR0V7NzXZEo5m_jq5VxW_A_NWyxwVEU"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -127,18 +127,17 @@ if predict_clicked:
                 confidence = result.get("confidence", 0)
 
                 # 🔥 SAVE TO SUPABASE
-                try:
-                    response_db = supabase.table("emails").insert({
-                         "text": part,
-                         "intent": predicted_intent,
-                         "confidence": float(confidence)
-                   }).execute()
+            try:
+                response_db = supabase.table("emails").insert({
+                   "text": part,
+                   "intent": predicted_intent,
+                "confidence": float(confidence)
+              }).execute()
 
-                   st.write("DB Response:", response_db)  # 👈 SHOW RESULT
+              st.write("DB Response:", response_db)
 
-                except Exception as e:
-                   st.error(f"Supabase Error: {e}")
-
+            except Exception as e:
+              st.error(f"Supabase Error: {e}")
             except:
                 predicted_intent = "Error"
                 confidence = 0
