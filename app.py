@@ -137,12 +137,12 @@ if predict_clicked:
                    "text": part,
                    "intent": predicted_intent,
                 "confidence": float(confidence)
-              }).execute()
+                }).execute()
 
-              st.write("DB Response:", response_db)
+                st.write("DB Response:", response_db)
 
             except Exception as e:
-              st.error(f"Supabase Error: {e}")
+                st.error(f"Supabase Error: {e}")
       
 
             st.markdown(f"""
