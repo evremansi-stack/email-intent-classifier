@@ -153,6 +153,35 @@ if predict_clicked:
                 <p>{responses.get(predicted_intent, "")}</p>
             </div>
             """, unsafe_allow_html=True)
+        st.markdown("## ☁️ Cloud Dashboard (Supabase Views)")
 
+try:
+    # Intent summary
+    intent_data = supabase.table("intent_summary").select("*").execute()
+    df_intent = pd.DataFrame(intent_data.data)
+
+    if not df_intent.empty:
+        st.subheader("📊 Intent Distribution")
+        st.bar_chart(df_intent.set_index("intent"))
+
+    # Confidence summary
+    conf_data = supabase.table("confidence_summary").select("*").execute()
+    df_conf = pd.DataFrame(conf_data.data)
+
+    if not df_conf.empty:
+        st.subheader("📈 Avg Confidence")
+        st.bar_chart(df_conf.set_index("intent"))
+
+    # Daily activity
+    daily_data = supabase.table("daily_activity").select("*").execute()
+    df_daily = pd.DataFrame(daily_data.data)
+
+    if not df_daily.empty:
+        st.subheader("📅 Daily Activity")
+        df_daily["day"] = pd.to_datetime(df_daily["day"])
+        st.line_chart(df_daily.set_index("day"))
+
+except Exception as e:
+    st.error(f"Dashboard Error: {e}")
     else:
         st.warning("Enter some text")
