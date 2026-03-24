@@ -125,6 +125,11 @@ if predict_clicked:
 
                 predicted_intent = result.get("prediction", "Error")
                 confidence = result.get("confidence", 0)
+            except Exception as e:
+                    predicted_intent = "Error"
+                    confidence = 0
+                    st.error(f"API Error: {e}")
+   
 
                 # 🔥 SAVE TO SUPABASE
             try:
@@ -138,9 +143,7 @@ if predict_clicked:
 
             except Exception as e:
               st.error(f"Supabase Error: {e}")
-            except:
-                predicted_intent = "Error"
-                confidence = 0
+      
 
             st.markdown(f"""
             <div class="result-box">
